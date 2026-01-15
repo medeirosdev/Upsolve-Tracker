@@ -1,0 +1,323 @@
+/* Google Fonts - must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+@import "tailwindcss";
+
+/* ========================================
+   UPSOLVE - Design System with Dark/Light Mode
+   ======================================== */
+
+/* ========================================
+   LIGHT THEME (Default)
+   ======================================== */
+
+/* ========================================
+   LIGHT THEME (Default)
+   ======================================== */
+:root {
+  /* Base Colors */
+  --color-bg-primary: #f8f7f4;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f3f2ef;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #eeede9;
+  --color-bg-sidebar: #ffffff;
+
+  /* Accent Colors */
+  --color-accent-primary: #7c6ef6;
+  --color-accent-secondary: #a78bfa;
+  --color-accent-gradient: linear-gradient(135deg, #9b87f5 0%, #7c6ef6 100%);
+
+  /* Status Colors - Soft */
+  --color-success: #5db882;
+  --color-success-bg: #e7f6ee;
+  --color-warning: #d9a641;
+  --color-warning-bg: #fdf5e3;
+  --color-error: #e06060;
+  --color-error-bg: #fde8e8;
+  --color-info: #5da5d6;
+  --color-info-bg: #e5f2fa;
+  --color-lavender: #9a8ab8;
+  --color-lavender-bg: #f0ebf7;
+
+  /* Text Colors */
+  --color-text-primary: #2d2d30;
+  --color-text-secondary: #5c5c66;
+  --color-text-muted: #8c8c99;
+  --color-text-inverse: #ffffff;
+
+  /* Border */
+  --color-border: #e5e4df;
+  --color-border-hover: #d5d4cf;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 24px rgba(124, 110, 246, 0.25);
+
+  /* Spacing */
+  --spacing-sidebar: 260px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ========================================
+   DARK THEME
+   ======================================== */
+[data-theme="dark"] {
+  --color-bg-primary: #0f0f12;
+  --color-bg-secondary: #18181d;
+  --color-bg-tertiary: #1f1f26;
+  --color-bg-card: #18181d;
+  --color-bg-hover: #26262e;
+  --color-bg-sidebar: #141418;
+
+  --color-accent-primary: #8b7cf6;
+  --color-accent-secondary: #a78bfa;
+  --color-accent-gradient: linear-gradient(135deg, #a78bfa 0%, #8b7cf6 100%);
+
+  --color-success: #6bc992;
+  --color-success-bg: rgba(107, 201, 146, 0.15);
+  --color-warning: #e9b84a;
+  --color-warning-bg: rgba(233, 184, 74, 0.15);
+  --color-error: #f07070;
+  --color-error-bg: rgba(240, 112, 112, 0.15);
+  --color-info: #6bb5e0;
+  --color-info-bg: rgba(107, 181, 224, 0.15);
+  --color-lavender: #b0a0d0;
+  --color-lavender-bg: rgba(176, 160, 208, 0.15);
+
+  --color-text-primary: #f0f0f4;
+  --color-text-secondary: #a0a0ae;
+  --color-text-muted: #6e6e7a;
+  --color-text-inverse: #0f0f12;
+
+  --color-border: #2a2a34;
+  --color-border-hover: #3a3a46;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 30px rgba(139, 124, 246, 0.3);
+}
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  font-family: var(--font-sans);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-hover);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.gradient-text {
+  background: var(--color-accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Status badges */
+.status-ac {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-wa {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.status-tle {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.status-mle,
+.status-re {
+  background-color: var(--color-lavender-bg);
+  color: var(--color-lavender);
+}
+
+.status-doing {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+/* Platform badges */
+.platform-codeforces {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.platform-leetcode {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.platform-beecrowd {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.platform-atcoder,
+.platform-other {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-slow) ease forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale var(--transition-slow) ease forwards;
+}
+
+.delay-1 {
+  animation-delay: 50ms;
+}
+
+.delay-2 {
+  animation-delay: 100ms;
+}
+
+.delay-3 {
+  animation-delay: 150ms;
+}
+
+.delay-4 {
+  animation-delay: 200ms;
+}
+
+/* ========================================
+   FOCUS & SELECTION
+   ======================================== */
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(124, 110, 246, 0.25);
+  color: var(--color-text-primary);
+}
+
+/* ========================================
+   RESPONSIVE BREAKPOINTS
+   ======================================== */
+
+@media (max-width: 1200px) {
+
+  :root,
+  [data-theme="dark"] {
+    --spacing-sidebar: 220px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  :root,
+  [data-theme="dark"] {
+    --spacing-sidebar: 0px;
+  }
+}
