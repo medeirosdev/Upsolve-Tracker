@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import type { Note } from '@/types';
+import { zustandStorage } from '@/lib/storage';
 
 interface NoteState {
     notes: Note[];
@@ -64,6 +65,7 @@ export const useNoteStore = create<NoteState>()(
         }),
         {
             name: 'upsolve-notes',
+            storage: zustandStorage,
         }
     )
 );

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { zustandStorage } from '@/lib/storage';
 
 export interface Goal {
     id: string;
@@ -49,6 +50,7 @@ export const useGoalStore = create<GoalStore>()(
         }),
         {
             name: 'upsolve-goals',
+            storage: zustandStorage,
         }
     )
 );

@@ -1,5 +1,18 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
+const Store = require('electron-store');
+
+// Initialize electron-store for persistent data
+const store = new Store({
+    name: 'upsolve-data',
+    defaults: {
+        problems: [],
+        notes: [],
+        snippets: [],
+        goals: { daily: 3, weekly: 15 },
+        badges: { unlocked: [], custom: [], totalXP: 0, level: 1 },
+    },
+});
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -49,6 +62,30 @@ function createWindow() {
         mainWindow.setMenu(null);
     }
 }
+
+// IPC Handlers for electron-store
+ipcMain.handle('store:get', (_, key) => {
+    return store.get(key);
+});
+
+ipcMain.handle('store:set', (_, key, value) => {
+    store.set(key, value);
+    return true;
+});
+
+ipcMain.handle('store:delete', (_, key) => {
+    store.delete(key);
+    return true;
+});
+
+ipcMain.handle('store:clear', () => {
+    store.clear();
+    return true;
+});
+
+ipcMain.handle('store:getAll', () => {
+    return store.store;
+});
 
 app.whenReady().then(() => {
     createWindow();
