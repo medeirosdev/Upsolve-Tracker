@@ -303,6 +303,78 @@ body {
 }
 
 /* ========================================
+   FORM ELEMENTS (Global)
+   ======================================== */
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238c8c99' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px !important;
+  transition: all var(--transition-fast);
+}
+
+select:hover {
+  border-color: var(--color-border-hover);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(124, 110, 246, 0.15);
+}
+
+select option {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  padding: 12px;
+}
+
+select option:checked {
+  background: var(--color-accent-primary);
+  color: white;
+}
+
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] select option {
+  background: #1f1f26;
+  color: #f0f0f4;
+}
+
+[data-theme="dark"] select option:hover,
+[data-theme="dark"] select option:focus {
+  background: #26262e;
+}
+
+input[type="text"],
+input[type="url"],
+input[type="number"],
+input[type="email"],
+textarea {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(124, 110, 246, 0.15);
+}
+
+/* ========================================
    RESPONSIVE BREAKPOINTS
    ======================================== */
 

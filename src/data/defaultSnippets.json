@@ -1,0 +1,80 @@
+[
+    {
+        "id": "default-1",
+        "title": "Dijkstra (Priority Queue)",
+        "description": "Algoritmo de caminho mínimo usando heap. Complexidade: O((V+E) log V)",
+        "language": "cpp",
+        "code": "#include <bits/stdc++.h>\nusing namespace std;\n\ntypedef pair<long long, int> pli;\nconst long long INF = 1e18;\n\nvector<long long> dijkstra(int start, vector<vector<pair<int, int>>>& adj) {\n    int n = adj.size();\n    vector<long long> dist(n, INF);\n    priority_queue<pli, vector<pli>, greater<pli>> pq;\n    \n    dist[start] = 0;\n    pq.push({0, start});\n    \n    while (!pq.empty()) {\n        auto [d, u] = pq.top();\n        pq.pop();\n        \n        if (d > dist[u]) continue;\n        \n        for (auto [v, w] : adj[u]) {\n            if (dist[u] + w < dist[v]) {\n                dist[v] = dist[u] + w;\n                pq.push({dist[v], v});\n            }\n        }\n    }\n    return dist;\n}",
+        "category": "Grafos",
+        "tags": [
+            "graphs",
+            "shortest-path",
+            "dijkstra"
+        ]
+    },
+    {
+        "id": "default-2",
+        "title": "Segment Tree (Point Update)",
+        "description": "Segment Tree com atualização pontual e consulta de intervalo. Complexidade: O(log N)",
+        "language": "cpp",
+        "code": "#include <bits/stdc++.h>\nusing namespace std;\n\ntemplate<typename T>\nstruct SegTree {\n    int n;\n    vector<T> tree;\n    T identity = 0; // mude para o elemento neutro da operação\n    \n    T merge(T a, T b) { return a + b; } // mude para a operação desejada\n    \n    void build(vector<T>& arr, int node, int start, int end) {\n        if (start == end) {\n            tree[node] = arr[start];\n        } else {\n            int mid = (start + end) / 2;\n            build(arr, 2*node, start, mid);\n            build(arr, 2*node+1, mid+1, end);\n            tree[node] = merge(tree[2*node], tree[2*node+1]);\n        }\n    }\n    \n    void update(int node, int start, int end, int idx, T val) {\n        if (start == end) {\n            tree[node] = val;\n        } else {\n            int mid = (start + end) / 2;\n            if (idx <= mid) update(2*node, start, mid, idx, val);\n            else update(2*node+1, mid+1, end, idx, val);\n            tree[node] = merge(tree[2*node], tree[2*node+1]);\n        }\n    }\n    \n    T query(int node, int start, int end, int l, int r) {\n        if (r < start || end < l) return identity;\n        if (l <= start && end <= r) return tree[node];\n        int mid = (start + end) / 2;\n        return merge(query(2*node, start, mid, l, r),\n                    query(2*node+1, mid+1, end, l, r));\n    }\n    \n    SegTree(vector<T>& arr) {\n        n = arr.size();\n        tree.resize(4 * n);\n        build(arr, 1, 0, n - 1);\n    }\n    \n    void update(int idx, T val) { update(1, 0, n-1, idx, val); }\n    T query(int l, int r) { return query(1, 0, n-1, l, r); }\n};",
+        "category": "Estruturas de Dados",
+        "tags": [
+            "segment-tree",
+            "data-structure",
+            "range-query"
+        ]
+    },
+    {
+        "id": "default-3",
+        "title": "Binary Search (Lower/Upper Bound)",
+        "description": "Busca binária para encontrar limites. Útil para encontrar posições em arrays ordenados.",
+        "language": "cpp",
+        "code": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Primeiro índice onde arr[i] >= target\nint lowerBound(vector<int>& arr, int target) {\n    int lo = 0, hi = arr.size();\n    while (lo < hi) {\n        int mid = lo + (hi - lo) / 2;\n        if (arr[mid] < target) lo = mid + 1;\n        else hi = mid;\n    }\n    return lo;\n}\n\n// Primeiro índice onde arr[i] > target\nint upperBound(vector<int>& arr, int target) {\n    int lo = 0, hi = arr.size();\n    while (lo < hi) {\n        int mid = lo + (hi - lo) / 2;\n        if (arr[mid] <= target) lo = mid + 1;\n        else hi = mid;\n    }\n    return lo;\n}\n\n// Busca binária genérica na resposta\n// bool check(int x) { ... } // retorna true se x é válido\nint binarySearchAnswer(int lo, int hi) {\n    while (lo < hi) {\n        int mid = lo + (hi - lo) / 2;\n        // if (check(mid)) hi = mid;  // para minimizar\n        // else lo = mid + 1;\n    }\n    return lo;\n}",
+        "category": "Algoritmos",
+        "tags": [
+            "binary-search",
+            "searching"
+        ]
+    },
+    {
+        "id": "default-4",
+        "title": "Union Find (DSU)",
+        "description": "Disjoint Set Union com path compression e union by rank. Complexidade: O(α(n)) amortizado.",
+        "language": "cpp",
+        "code": "#include <bits/stdc++.h>\nusing namespace std;\n\nstruct DSU {\n    vector<int> parent, rank_;\n    int components;\n    \n    DSU(int n) : parent(n), rank_(n, 0), components(n) {\n        iota(parent.begin(), parent.end(), 0);\n    }\n    \n    int find(int x) {\n        if (parent[x] != x) parent[x] = find(parent[x]);\n        return parent[x];\n    }\n    \n    bool unite(int x, int y) {\n        int px = find(x), py = find(y);\n        if (px == py) return false;\n        \n        if (rank_[px] < rank_[py]) swap(px, py);\n        parent[py] = px;\n        if (rank_[px] == rank_[py]) rank_[px]++;\n        components--;\n        return true;\n    }\n    \n    bool connected(int x, int y) { return find(x) == find(y); }\n    int getComponents() { return components; }\n};",
+        "category": "Estruturas de Dados",
+        "tags": [
+            "dsu",
+            "union-find",
+            "data-structure"
+        ]
+    },
+    {
+        "id": "default-5",
+        "title": "BFS (Shortest Path Unweighted)",
+        "description": "Busca em largura para grafos não ponderados. Complexidade: O(V + E)",
+        "language": "cpp",
+        "code": "#include <bits/stdc++.h>\nusing namespace std;\n\nvector<int> bfs(int start, vector<vector<int>>& adj) {\n    int n = adj.size();\n    vector<int> dist(n, -1);\n    queue<int> q;\n    \n    dist[start] = 0;\n    q.push(start);\n    \n    while (!q.empty()) {\n        int u = q.front();\n        q.pop();\n        \n        for (int v : adj[u]) {\n            if (dist[v] == -1) {\n                dist[v] = dist[u] + 1;\n                q.push(v);\n            }\n        }\n    }\n    return dist;\n}\n\n// Reconstruir caminho\nvector<int> getPath(int start, int end, vector<vector<int>>& adj) {\n    int n = adj.size();\n    vector<int> dist(n, -1), parent(n, -1);\n    queue<int> q;\n    \n    dist[start] = 0;\n    q.push(start);\n    \n    while (!q.empty()) {\n        int u = q.front();\n        q.pop();\n        for (int v : adj[u]) {\n            if (dist[v] == -1) {\n                dist[v] = dist[u] + 1;\n                parent[v] = u;\n                q.push(v);\n            }\n        }\n    }\n    \n    if (dist[end] == -1) return {}; // sem caminho\n    \n    vector<int> path;\n    for (int v = end; v != -1; v = parent[v]) path.push_back(v);\n    reverse(path.begin(), path.end());\n    return path;\n}",
+        "category": "Grafos",
+        "tags": [
+            "bfs",
+            "graphs",
+            "shortest-path"
+        ]
+    },
+    {
+        "id": "default-6",
+        "title": "Sieve of Eratosthenes",
+        "description": "Crivo de Eratóstenes para encontrar todos os primos até N. Complexidade: O(N log log N)",
+        "language": "cpp",
+        "code": "#include <bits/stdc++.h>\nusing namespace std;\n\nvector<bool> sieve(int n) {\n    vector<bool> is_prime(n + 1, true);\n    is_prime[0] = is_prime[1] = false;\n    \n    for (int i = 2; i * i <= n; i++) {\n        if (is_prime[i]) {\n            for (int j = i * i; j <= n; j += i) {\n                is_prime[j] = false;\n            }\n        }\n    }\n    return is_prime;\n}\n\nvector<int> getPrimes(int n) {\n    auto is_prime = sieve(n);\n    vector<int> primes;\n    for (int i = 2; i <= n; i++) {\n        if (is_prime[i]) primes.push_back(i);\n    }\n    return primes;\n}\n\n// Smallest Prime Factor (útil para fatoração rápida)\nvector<int> spf(int n) {\n    vector<int> sp(n + 1);\n    iota(sp.begin(), sp.end(), 0);\n    for (int i = 2; i * i <= n; i++) {\n        if (sp[i] == i) { // i é primo\n            for (int j = i * i; j <= n; j += i) {\n                if (sp[j] == j) sp[j] = i;\n            }\n        }\n    }\n    return sp;\n}",
+        "category": "Matemática",
+        "tags": [
+            "math",
+            "primes",
+            "number-theory",
+            "sieve"
+        ]
+    }
+]
