@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts';
 import { Layout } from '@/components/layout';
 import { Dashboard, Logbook, Grimoire, Snippets, Profile, Settings } from '@/pages';
@@ -35,7 +35,7 @@ function App() {
     <ThemeProvider>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
 
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
@@ -54,7 +54,7 @@ function App() {
         />
 
         {timerOpen && <Timer onClose={() => setTimerOpen(false)} />}
-      </BrowserRouter>
+      </HashRouter>
     </ThemeProvider>
   );
 }
