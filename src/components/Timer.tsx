@@ -1,220 +1,183 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Bell, X, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { playTimerComplete } from '@/hooks/useSounds';
 
 interface TimerProps {
-    onClose: () => void;
+  onClose: () => void;
 }
 
 const PRESETS = [
-    { label: '25 min', seconds: 25 * 60 },
-    { label: '45 min', seconds: 45 * 60 },
-    { label: '1 hora', seconds: 60 * 60 },
-    { label: '2 horas', seconds: 2 * 60 * 60 },
-    { label: 'Custom', seconds: 0 },
+  { label: '25 min', seconds: 25 * 60 },
+  { label: '45 min', seconds: 45 * 60 },
+  { label: '1 hora', seconds: 60 * 60 },
+  { label: '2 horas', seconds: 2 * 60 * 60 },
+  { label: 'Custom', seconds: 0 },
 ];
 
 export function Timer({ onClose }: TimerProps) {
-    const [totalSeconds, setTotalSeconds] = useState(25 * 60);
-    const [remainingSeconds, setRemainingSeconds] = useState(25 * 60);
-    const [isRunning, setIsRunning] = useState(false);
-    const [selectedPreset, setSelectedPreset] = useState(0);
-    const [customMinutes, setCustomMinutes] = useState(25);
+  const [totalSeconds, setTotalSeconds] = useState(25 * 60);
+  const [remainingSeconds, setRemainingSeconds] = useState(25 * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState(0);
+  const [customMinutes, setCustomMinutes] = useState(25);
 
 
-    // Timer logic
-    useEffect(() => {
-        let interval: ReturnType<typeof setInterval>;
+  // Timer logic
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
 
-        if (isRunning && remainingSeconds > 0) {
-            interval = setInterval(() => {
-                setRemainingSeconds((prev) => prev - 1);
-            }, 1000);
-        } else if (remainingSeconds === 0 && isRunning) {
-            setIsRunning(false);
-            playAlarm();
-            toast.success('⏰ Tempo esgotado! Hora de descansar.', { duration: 10000 });
-        }
+    if (isRunning && remainingSeconds > 0) {
+      interval = setInterval(() => {
+        setRemainingSeconds((prev) => prev - 1);
+      }, 1000);
+    } else if (remainingSeconds === 0 && isRunning) {
+      setIsRunning(false);
+      playTimerComplete();
+      toast.success('⏰ Tempo esgotado! Hora de descansar.', { duration: 10000 });
 
-        return () => clearInterval(interval);
-    }, [isRunning, remainingSeconds]);
+      // Also show browser notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('UpSolve Timer', {
+          body: 'Tempo esgotado! Hora de descansar.',
+        });
+      }
+    }
 
-    const playAlarm = useCallback(() => {
-        // Use Web Audio API for notification sound
-        try {
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+    return () => clearInterval(interval);
+  }, [isRunning, remainingSeconds]);
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
 
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-            gainNode.gain.value = 0.3;
+    if (h > 0) {
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
-            oscillator.start();
+  const handlePresetChange = (index: number) => {
+    setSelectedPreset(index);
+    if (PRESETS[index].seconds > 0) {
+      setTotalSeconds(PRESETS[index].seconds);
+      setRemainingSeconds(PRESETS[index].seconds);
+      setIsRunning(false);
+    }
+  };
 
-            // Beep pattern
-            setTimeout(() => oscillator.stop(), 200);
-            setTimeout(() => {
-                const osc2 = audioContext.createOscillator();
-                osc2.connect(gainNode);
-                osc2.frequency.value = 800;
-                osc2.type = 'sine';
-                osc2.start();
-                setTimeout(() => osc2.stop(), 200);
-            }, 300);
-            setTimeout(() => {
-                const osc3 = audioContext.createOscillator();
-                osc3.connect(gainNode);
-                osc3.frequency.value = 1000;
-                osc3.type = 'sine';
-                osc3.start();
-                setTimeout(() => osc3.stop(), 400);
-            }, 600);
-        } catch {
-            // Fallback: browser notification
-            if (Notification.permission === 'granted') {
-                new Notification('UpSolve Timer', {
-                    body: 'Tempo esgotado! Hora de descansar.',
-                    icon: '⏰',
-                });
-            }
-        }
-    }, []);
+  const handleCustomSet = () => {
+    const seconds = customMinutes * 60;
+    setTotalSeconds(seconds);
+    setRemainingSeconds(seconds);
+    setIsRunning(false);
+  };
 
-    const formatTime = (seconds: number) => {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
+  const toggleTimer = () => {
+    if (!isRunning && remainingSeconds === 0) {
+      setRemainingSeconds(totalSeconds);
+    }
+    setIsRunning(!isRunning);
+  };
 
-        if (h > 0) {
-            return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
+  const resetTimer = () => {
+    setIsRunning(false);
+    setRemainingSeconds(totalSeconds);
+  };
 
-    const handlePresetChange = (index: number) => {
-        setSelectedPreset(index);
-        if (PRESETS[index].seconds > 0) {
-            setTotalSeconds(PRESETS[index].seconds);
-            setRemainingSeconds(PRESETS[index].seconds);
-            setIsRunning(false);
-        }
-    };
+  const progress = totalSeconds > 0 ? ((totalSeconds - remainingSeconds) / totalSeconds) * 100 : 0;
 
-    const handleCustomSet = () => {
-        const seconds = customMinutes * 60;
-        setTotalSeconds(seconds);
-        setRemainingSeconds(seconds);
-        setIsRunning(false);
-    };
+  // Request notification permission
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
-    const toggleTimer = () => {
-        if (!isRunning && remainingSeconds === 0) {
-            setRemainingSeconds(totalSeconds);
-        }
-        setIsRunning(!isRunning);
-    };
+  return (
+    <div className="timer-overlay" onClick={onClose}>
+      <div className="timer-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="timer-close" onClick={onClose}>
+          <X size={20} />
+        </button>
 
-    const resetTimer = () => {
-        setIsRunning(false);
-        setRemainingSeconds(totalSeconds);
-    };
+        <div className="timer-header">
+          <Clock size={24} />
+          <h2>Timer de Sessão</h2>
+        </div>
 
-    const progress = totalSeconds > 0 ? ((totalSeconds - remainingSeconds) / totalSeconds) * 100 : 0;
+        {/* Circular Progress */}
+        <div className="timer-circle-container">
+          <svg className="timer-circle" viewBox="0 0 200 200">
+            <circle
+              className="timer-bg"
+              cx="100"
+              cy="100"
+              r="90"
+              fill="none"
+              strokeWidth="8"
+            />
+            <circle
+              className="timer-progress"
+              cx="100"
+              cy="100"
+              r="90"
+              fill="none"
+              strokeWidth="8"
+              strokeDasharray={`${2 * Math.PI * 90}`}
+              strokeDashoffset={`${2 * Math.PI * 90 * (1 - progress / 100)}`}
+              transform="rotate(-90 100 100)"
+            />
+          </svg>
+          <div className="timer-display">
+            <span className="timer-time">{formatTime(remainingSeconds)}</span>
+            <span className="timer-label">{isRunning ? 'Em andamento' : 'Pausado'}</span>
+          </div>
+        </div>
 
-    // Request notification permission
-    useEffect(() => {
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-    }, []);
+        {/* Controls */}
+        <div className="timer-controls">
+          <button className="timer-btn secondary" onClick={resetTimer}>
+            <RotateCcw size={20} />
+          </button>
+          <button className={`timer-btn primary ${isRunning ? 'pause' : ''}`} onClick={toggleTimer}>
+            {isRunning ? <Pause size={24} /> : <Play size={24} />}
+          </button>
+          <button className="timer-btn secondary" onClick={playTimerComplete}>
+            <Bell size={20} />
+          </button>
+        </div>
 
-    return (
-        <div className="timer-overlay" onClick={onClose}>
-            <div className="timer-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="timer-close" onClick={onClose}>
-                    <X size={20} />
-                </button>
+        {/* Presets */}
+        <div className="timer-presets">
+          {PRESETS.map((preset, i) => (
+            <button
+              key={i}
+              className={`preset-btn ${selectedPreset === i ? 'active' : ''}`}
+              onClick={() => handlePresetChange(i)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
 
-                <div className="timer-header">
-                    <Clock size={24} />
-                    <h2>Timer de Sessão</h2>
-                </div>
+        {/* Custom Input */}
+        {selectedPreset === PRESETS.length - 1 && (
+          <div className="timer-custom">
+            <input
+              type="number"
+              value={customMinutes}
+              onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+              min={1}
+              max={999}
+            />
+            <span>minutos</span>
+            <button onClick={handleCustomSet}>Definir</button>
+          </div>
+        )}
 
-                {/* Circular Progress */}
-                <div className="timer-circle-container">
-                    <svg className="timer-circle" viewBox="0 0 200 200">
-                        <circle
-                            className="timer-bg"
-                            cx="100"
-                            cy="100"
-                            r="90"
-                            fill="none"
-                            strokeWidth="8"
-                        />
-                        <circle
-                            className="timer-progress"
-                            cx="100"
-                            cy="100"
-                            r="90"
-                            fill="none"
-                            strokeWidth="8"
-                            strokeDasharray={`${2 * Math.PI * 90}`}
-                            strokeDashoffset={`${2 * Math.PI * 90 * (1 - progress / 100)}`}
-                            transform="rotate(-90 100 100)"
-                        />
-                    </svg>
-                    <div className="timer-display">
-                        <span className="timer-time">{formatTime(remainingSeconds)}</span>
-                        <span className="timer-label">{isRunning ? 'Em andamento' : 'Pausado'}</span>
-                    </div>
-                </div>
-
-                {/* Controls */}
-                <div className="timer-controls">
-                    <button className="timer-btn secondary" onClick={resetTimer}>
-                        <RotateCcw size={20} />
-                    </button>
-                    <button className={`timer-btn primary ${isRunning ? 'pause' : ''}`} onClick={toggleTimer}>
-                        {isRunning ? <Pause size={24} /> : <Play size={24} />}
-                    </button>
-                    <button className="timer-btn secondary" onClick={playAlarm}>
-                        <Bell size={20} />
-                    </button>
-                </div>
-
-                {/* Presets */}
-                <div className="timer-presets">
-                    {PRESETS.map((preset, i) => (
-                        <button
-                            key={i}
-                            className={`preset-btn ${selectedPreset === i ? 'active' : ''}`}
-                            onClick={() => handlePresetChange(i)}
-                        >
-                            {preset.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Custom Input */}
-                {selectedPreset === PRESETS.length - 1 && (
-                    <div className="timer-custom">
-                        <input
-                            type="number"
-                            value={customMinutes}
-                            onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-                            min={1}
-                            max={999}
-                        />
-                        <span>minutos</span>
-                        <button onClick={handleCustomSet}>Definir</button>
-                    </div>
-                )}
-
-                <style>{`
+        <style>{`
           .timer-overlay {
             position: fixed;
             inset: 0;
@@ -422,7 +385,7 @@ export function Timer({ onClose }: TimerProps) {
             cursor: pointer;
           }
         `}</style>
-            </div>
-        </div>
-    );
+      </div>
+    </div>
+  );
 }

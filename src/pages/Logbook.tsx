@@ -8,409 +8,463 @@
 import { useState } from 'react';
 import { useProblemStore } from '@/stores';
 import {
-    Plus,
-    Search,
-    Filter,
-    ExternalLink,
-    Trash2,
-    Edit2,
-    X,
-    Clock
+  Plus,
+  Search,
+  Filter,
+  ExternalLink,
+  Trash2,
+  Edit2,
+  X,
+  Clock,
+  RotateCcw
 } from 'lucide-react';
 import type { Problem, Platform, ProblemStatus } from '@/types';
 import toast from 'react-hot-toast';
+import { playSuccess } from '@/hooks/useSounds';
 
 const PLATFORMS: Platform[] = ['Codeforces', 'LeetCode', 'Beecrowd', 'AtCoder', 'Other'];
 const STATUSES: ProblemStatus[] = ['AC', 'WA', 'TLE', 'MLE', 'RE', 'DOING'];
 
 const COMMON_TAGS = [
-    'math', 'dp', 'greedy', 'graphs', 'binary-search',
-    'sorting', 'strings', 'trees', 'dfs', 'bfs',
-    'two-pointers', 'segment-tree', 'number-theory'
+  'math', 'dp', 'greedy', 'graphs', 'binary-search',
+  'sorting', 'strings', 'trees', 'dfs', 'bfs',
+  'two-pointers', 'segment-tree', 'number-theory'
 ];
 
 type ModalMode = 'create' | 'edit';
 
 export function Logbook() {
-    const problems = useProblemStore((state) => state.problems);
-    const addProblem = useProblemStore((state) => state.addProblem);
-    const deleteProblem = useProblemStore((state) => state.deleteProblem);
-    const updateProblem = useProblemStore((state) => state.updateProblem);
+  const problems = useProblemStore((state) => state.problems);
+  const addProblem = useProblemStore((state) => state.addProblem);
+  const deleteProblem = useProblemStore((state) => state.deleteProblem);
+  const updateProblem = useProblemStore((state) => state.updateProblem);
 
-    const [modalMode, setModalMode] = useState<ModalMode>('create');
-    const [showModal, setShowModal] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterPlatform, setFilterPlatform] = useState<Platform | 'all'>('all');
-    const [filterStatus, setFilterStatus] = useState<ProblemStatus | 'all'>('all');
+  const [modalMode, setModalMode] = useState<ModalMode>('create');
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterPlatform, setFilterPlatform] = useState<Platform | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<ProblemStatus | 'all'>('all');
+  const [filterTag, setFilterTag] = useState<string>('all');
 
-    // Form state
-    const [formData, setFormData] = useState({
-        title: '',
-        platform: 'Codeforces' as Platform,
-        link: '',
-        difficulty: '',
-        status: 'DOING' as ProblemStatus,
-        tags: [] as string[],
-        quickNotes: '',
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    platform: 'Codeforces' as Platform,
+    link: '',
+    difficulty: '',
+    status: 'DOING' as ProblemStatus,
+    tags: [] as string[],
+    quickNotes: '',
+  });
+  const [tagInput, setTagInput] = useState('');
+
+  // Get all unique tags from problems for filter dropdown
+  const allTags = [...new Set(problems.flatMap((p) => p.tags))].sort();
+
+  // Count active filters
+  const activeFilterCount = [filterPlatform !== 'all', filterStatus !== 'all', filterTag !== 'all', searchQuery !== ''].filter(Boolean).length;
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterPlatform('all');
+    setFilterStatus('all');
+    setFilterTag('all');
+  };
+
+  // Filtered problems
+  const filteredProblems = problems.filter((p) => {
+    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPlatform = filterPlatform === 'all' || p.platform === filterPlatform;
+    const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
+    const matchesTag = filterTag === 'all' || p.tags.includes(filterTag);
+    return matchesSearch && matchesPlatform && matchesStatus && matchesTag;
+  });
+
+  const openCreateModal = () => {
+    setModalMode('create');
+    setEditingId(null);
+    resetForm();
+    setShowModal(true);
+  };
+
+  const openEditModal = (problem: Problem) => {
+    setModalMode('edit');
+    setEditingId(problem.id);
+    setFormData({
+      title: problem.title,
+      platform: problem.platform,
+      link: problem.link || '',
+      difficulty: problem.difficulty?.toString() || '',
+      status: problem.status,
+      tags: [...problem.tags],
+      quickNotes: problem.quickNotes || '',
     });
-    const [tagInput, setTagInput] = useState('');
+    setShowModal(true);
+  };
 
-    // Filtered problems
-    const filteredProblems = problems.filter((p) => {
-        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesPlatform = filterPlatform === 'all' || p.platform === filterPlatform;
-        const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
-        return matchesSearch && matchesPlatform && matchesStatus;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const problemData = {
+      title: formData.title,
+      platform: formData.platform,
+      link: formData.link || undefined,
+      difficulty: formData.difficulty ? parseInt(formData.difficulty) : undefined,
+      status: formData.status,
+      tags: formData.tags,
+      quickNotes: formData.quickNotes || undefined,
+    };
+
+    if (modalMode === 'create') {
+      addProblem(problemData);
+      toast.success('Questão adicionada!');
+      if (formData.status === 'AC') {
+        playSuccess();
+      }
+    } else if (editingId) {
+      updateProblem(editingId, problemData);
+      toast.success('Questão atualizada!');
+      if (formData.status === 'AC') {
+        playSuccess();
+      }
+    }
+
+    setShowModal(false);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      platform: 'Codeforces',
+      link: '',
+      difficulty: '',
+      status: 'DOING',
+      tags: [],
+      quickNotes: '',
     });
+    setTagInput('');
+    setEditingId(null);
+  };
 
-    const openCreateModal = () => {
-        setModalMode('create');
-        setEditingId(null);
-        resetForm();
-        setShowModal(true);
-    };
+  const addTag = (tag: string) => {
+    const normalizedTag = tag.toLowerCase().trim();
+    if (normalizedTag && !formData.tags.includes(normalizedTag)) {
+      setFormData({ ...formData, tags: [...formData.tags, normalizedTag] });
+    }
+    setTagInput('');
+  };
 
-    const openEditModal = (problem: Problem) => {
-        setModalMode('edit');
-        setEditingId(problem.id);
-        setFormData({
-            title: problem.title,
-            platform: problem.platform,
-            link: problem.link || '',
-            difficulty: problem.difficulty?.toString() || '',
-            status: problem.status,
-            tags: [...problem.tags],
-            quickNotes: problem.quickNotes || '',
-        });
-        setShowModal(true);
-    };
+  const removeTag = (tag: string) => {
+    setFormData({ ...formData, tags: formData.tags.filter((t) => t !== tag) });
+  };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+  const handleDelete = (id: string, title: string) => {
+    if (confirm(`Deletar "${title}"?`)) {
+      deleteProblem(id);
+      toast.success('Questão removida');
+    }
+  };
 
-        const problemData = {
-            title: formData.title,
-            platform: formData.platform,
-            link: formData.link || undefined,
-            difficulty: formData.difficulty ? parseInt(formData.difficulty) : undefined,
-            status: formData.status,
-            tags: formData.tags,
-            quickNotes: formData.quickNotes || undefined,
-        };
+  const cycleStatus = (problem: Problem) => {
+    const statusIndex = STATUSES.indexOf(problem.status);
+    const nextStatus = STATUSES[(statusIndex + 1) % STATUSES.length];
+    updateProblem(problem.id, { status: nextStatus });
+    if (nextStatus === 'AC') {
+      playSuccess();
+    }
+  };
 
-        if (modalMode === 'create') {
-            addProblem(problemData);
-            toast.success('Questão adicionada!');
-        } else if (editingId) {
-            updateProblem(editingId, problemData);
-            toast.success('Questão atualizada!');
-        }
+  return (
+    <div className="logbook">
+      <header className="page-header animate-fade-in">
+        <div>
+          <h1>Logbook</h1>
+          <p className="subtitle">Registre e acompanhe suas questões</p>
+        </div>
+        <button className="btn-primary" onClick={openCreateModal}>
+          <Plus size={18} />
+          Nova Questão
+        </button>
+      </header>
 
-        setShowModal(false);
-        resetForm();
-    };
+      {/* Filters */}
+      <div className="filters-bar animate-fade-in delay-1">
+        <div className="search-box">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Buscar questões..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button className="search-clear" onClick={() => setSearchQuery('')}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
 
-    const resetForm = () => {
-        setFormData({
-            title: '',
-            platform: 'Codeforces',
-            link: '',
-            difficulty: '',
-            status: 'DOING',
-            tags: [],
-            quickNotes: '',
-        });
-        setTagInput('');
-        setEditingId(null);
-    };
+        <div className="filter-group">
+          <Filter size={16} />
+          <select
+            value={filterPlatform}
+            onChange={(e) => setFilterPlatform(e.target.value as Platform | 'all')}
+          >
+            <option value="all">Plataforma</option>
+            {PLATFORMS.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
 
-    const addTag = (tag: string) => {
-        const normalizedTag = tag.toLowerCase().trim();
-        if (normalizedTag && !formData.tags.includes(normalizedTag)) {
-            setFormData({ ...formData, tags: [...formData.tags, normalizedTag] });
-        }
-        setTagInput('');
-    };
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as ProblemStatus | 'all')}
+          >
+            <option value="all">Status</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
 
-    const removeTag = (tag: string) => {
-        setFormData({ ...formData, tags: formData.tags.filter((t) => t !== tag) });
-    };
+          <select
+            value={filterTag}
+            onChange={(e) => setFilterTag(e.target.value)}
+          >
+            <option value="all">Tag</option>
+            {allTags.map((tag) => (
+              <option key={tag} value={tag}>{tag}</option>
+            ))}
+          </select>
 
-    const handleDelete = (id: string, title: string) => {
-        if (confirm(`Deletar "${title}"?`)) {
-            deleteProblem(id);
-            toast.success('Questão removida');
-        }
-    };
+          {activeFilterCount > 0 && (
+            <button className="clear-filters-btn" onClick={clearFilters} title="Limpar filtros">
+              <RotateCcw size={14} />
+              <span>Limpar ({activeFilterCount})</span>
+            </button>
+          )}
+        </div>
+      </div>
 
-    const cycleStatus = (problem: Problem) => {
-        const statusIndex = STATUSES.indexOf(problem.status);
-        const nextStatus = STATUSES[(statusIndex + 1) % STATUSES.length];
-        updateProblem(problem.id, { status: nextStatus });
-    };
+      {/* Results count */}
+      <div className="results-count animate-fade-in delay-1">
+        <span>{filteredProblems.length} de {problems.length} questões</span>
+      </div>
 
-    return (
-        <div className="logbook">
-            <header className="page-header animate-fade-in">
-                <div>
-                    <h1>Logbook</h1>
-                    <p className="subtitle">Registre e acompanhe suas questões</p>
+      {/* Problems List */}
+      <div className="problems-container animate-fade-in delay-2">
+        {filteredProblems.length === 0 ? (
+          <div className="empty-state">
+            <h3>Nenhuma questão encontrada</h3>
+            <p>Clique em "Nova Questão" para adicionar</p>
+          </div>
+        ) : (
+          <div className="problems-list">
+            {filteredProblems.map((problem, index) => (
+              <div
+                key={problem.id}
+                className="problem-card"
+                style={{ animationDelay: `${index * 30}ms` }}
+              >
+                <div className="problem-main">
+                  <button
+                    className={`status-badge status-${problem.status.toLowerCase()}`}
+                    onClick={() => cycleStatus(problem)}
+                    title="Clique para mudar status"
+                  >
+                    {problem.status}
+                  </button>
+                  <div className="problem-info">
+                    <div className="problem-title-row">
+                      <span className="problem-title">{problem.title}</span>
+                      {problem.link && (
+                        <a
+                          href={problem.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="problem-link"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
+                    <div className="problem-meta">
+                      <span className={`platform-badge platform-${problem.platform.toLowerCase()}`}>
+                        {problem.platform}
+                      </span>
+                      {problem.difficulty && (
+                        <span className="difficulty">Rating: {problem.difficulty}</span>
+                      )}
+                      <span className="date">
+                        <Clock size={12} />
+                        {new Date(problem.createdAt).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <button className="btn-primary" onClick={openCreateModal}>
-                    <Plus size={18} />
-                    Nova Questão
+
+                <div className="problem-tags">
+                  {problem.tags.slice(0, 3).map((tag) => (
+                    <span key={tag} className="tag">{tag}</span>
+                  ))}
+                  {problem.tags.length > 3 && (
+                    <span className="tag tag-more">+{problem.tags.length - 3}</span>
+                  )}
+                </div>
+
+                <div className="problem-actions">
+                  <button
+                    className="action-btn"
+                    title="Editar"
+                    onClick={() => openEditModal(problem)}
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button
+                    className="action-btn action-delete"
+                    title="Deletar"
+                    onClick={() => handleDelete(problem.id, problem.title)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{modalMode === 'create' ? 'Nova Questão' : 'Editar Questão'}</h2>
+              <button className="modal-close" onClick={() => setShowModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Título *</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Ex: Two Sum"
+                    required
+                  />
+                </div>
+                <div className="form-group form-group-small">
+                  <label>Plataforma</label>
+                  <select
+                    value={formData.platform}
+                    onChange={(e) => setFormData({ ...formData, platform: e.target.value as Platform })}
+                  >
+                    {PLATFORMS.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Link</label>
+                  <input
+                    type="url"
+                    value={formData.link}
+                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="form-group form-group-xs">
+                  <label>Rating</label>
+                  <input
+                    type="number"
+                    value={formData.difficulty}
+                    onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                    placeholder="800"
+                  />
+                </div>
+                <div className="form-group form-group-xs">
+                  <label>Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as ProblemStatus })}
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Tags</label>
+                <div className="tags-input-container">
+                  <div className="selected-tags">
+                    {formData.tags.map((tag) => (
+                      <span key={tag} className="tag tag-selected" onClick={() => removeTag(tag)}>
+                        {tag} <X size={12} />
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTag(tagInput);
+                      }
+                    }}
+                    placeholder="Adicionar tag (Enter)"
+                  />
+                </div>
+                <div className="common-tags">
+                  {COMMON_TAGS.filter((t) => !formData.tags.includes(t)).slice(0, 6).map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className="tag tag-suggestion"
+                      onClick={() => addTag(tag)}
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Notas rápidas</label>
+                <textarea
+                  value={formData.quickNotes}
+                  onChange={(e) => setFormData({ ...formData, quickNotes: e.target.value })}
+                  placeholder="Observações sobre a questão..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
+                  Cancelar
                 </button>
-            </header>
+                <button type="submit" className="btn-primary">
+                  {modalMode === 'create' ? 'Adicionar' : 'Salvar Alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-            {/* Filters */}
-            <div className="filters-bar animate-fade-in delay-1">
-                <div className="search-box">
-                    <Search size={18} />
-                    <input
-                        type="text"
-                        placeholder="Buscar questões..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-
-                <div className="filter-group">
-                    <Filter size={16} />
-                    <select
-                        value={filterPlatform}
-                        onChange={(e) => setFilterPlatform(e.target.value as Platform | 'all')}
-                    >
-                        <option value="all">Todas Plataformas</option>
-                        {PLATFORMS.map((p) => (
-                            <option key={p} value={p}>{p}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value as ProblemStatus | 'all')}
-                    >
-                        <option value="all">Todos Status</option>
-                        {STATUSES.map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* Problems List */}
-            <div className="problems-container animate-fade-in delay-2">
-                {filteredProblems.length === 0 ? (
-                    <div className="empty-state">
-                        <h3>Nenhuma questão encontrada</h3>
-                        <p>Clique em "Nova Questão" para adicionar</p>
-                    </div>
-                ) : (
-                    <div className="problems-list">
-                        {filteredProblems.map((problem, index) => (
-                            <div
-                                key={problem.id}
-                                className="problem-card"
-                                style={{ animationDelay: `${index * 30}ms` }}
-                            >
-                                <div className="problem-main">
-                                    <button
-                                        className={`status-badge status-${problem.status.toLowerCase()}`}
-                                        onClick={() => cycleStatus(problem)}
-                                        title="Clique para mudar status"
-                                    >
-                                        {problem.status}
-                                    </button>
-                                    <div className="problem-info">
-                                        <div className="problem-title-row">
-                                            <span className="problem-title">{problem.title}</span>
-                                            {problem.link && (
-                                                <a
-                                                    href={problem.link}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="problem-link"
-                                                >
-                                                    <ExternalLink size={14} />
-                                                </a>
-                                            )}
-                                        </div>
-                                        <div className="problem-meta">
-                                            <span className={`platform-badge platform-${problem.platform.toLowerCase()}`}>
-                                                {problem.platform}
-                                            </span>
-                                            {problem.difficulty && (
-                                                <span className="difficulty">Rating: {problem.difficulty}</span>
-                                            )}
-                                            <span className="date">
-                                                <Clock size={12} />
-                                                {new Date(problem.createdAt).toLocaleDateString('pt-BR')}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="problem-tags">
-                                    {problem.tags.slice(0, 3).map((tag) => (
-                                        <span key={tag} className="tag">{tag}</span>
-                                    ))}
-                                    {problem.tags.length > 3 && (
-                                        <span className="tag tag-more">+{problem.tags.length - 3}</span>
-                                    )}
-                                </div>
-
-                                <div className="problem-actions">
-                                    <button
-                                        className="action-btn"
-                                        title="Editar"
-                                        onClick={() => openEditModal(problem)}
-                                    >
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button
-                                        className="action-btn action-delete"
-                                        title="Deletar"
-                                        onClick={() => handleDelete(problem.id, problem.title)}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Create/Edit Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{modalMode === 'create' ? 'Nova Questão' : 'Editar Questão'}</h2>
-                            <button className="modal-close" onClick={() => setShowModal(false)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Título *</label>
-                                    <input
-                                        type="text"
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                        placeholder="Ex: Two Sum"
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group form-group-small">
-                                    <label>Plataforma</label>
-                                    <select
-                                        value={formData.platform}
-                                        onChange={(e) => setFormData({ ...formData, platform: e.target.value as Platform })}
-                                    >
-                                        {PLATFORMS.map((p) => (
-                                            <option key={p} value={p}>{p}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Link</label>
-                                    <input
-                                        type="url"
-                                        value={formData.link}
-                                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                                        placeholder="https://..."
-                                    />
-                                </div>
-                                <div className="form-group form-group-xs">
-                                    <label>Rating</label>
-                                    <input
-                                        type="number"
-                                        value={formData.difficulty}
-                                        onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                                        placeholder="800"
-                                    />
-                                </div>
-                                <div className="form-group form-group-xs">
-                                    <label>Status</label>
-                                    <select
-                                        value={formData.status}
-                                        onChange={(e) => setFormData({ ...formData, status: e.target.value as ProblemStatus })}
-                                    >
-                                        {STATUSES.map((s) => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Tags</label>
-                                <div className="tags-input-container">
-                                    <div className="selected-tags">
-                                        {formData.tags.map((tag) => (
-                                            <span key={tag} className="tag tag-selected" onClick={() => removeTag(tag)}>
-                                                {tag} <X size={12} />
-                                            </span>
-                                        ))}
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={tagInput}
-                                        onChange={(e) => setTagInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                addTag(tagInput);
-                                            }
-                                        }}
-                                        placeholder="Adicionar tag (Enter)"
-                                    />
-                                </div>
-                                <div className="common-tags">
-                                    {COMMON_TAGS.filter((t) => !formData.tags.includes(t)).slice(0, 6).map((tag) => (
-                                        <button
-                                            key={tag}
-                                            type="button"
-                                            className="tag tag-suggestion"
-                                            onClick={() => addTag(tag)}
-                                        >
-                                            + {tag}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Notas rápidas</label>
-                                <textarea
-                                    value={formData.quickNotes}
-                                    onChange={(e) => setFormData({ ...formData, quickNotes: e.target.value })}
-                                    placeholder="Observações sobre a questão..."
-                                    rows={3}
-                                />
-                            </div>
-
-                            <div className="modal-actions">
-                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    {modalMode === 'create' ? 'Adicionar' : 'Salvar Alterações'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            <style>{`
+      <style>{`
         .logbook {
           max-width: 1200px;
           margin: 0 auto;
@@ -523,8 +577,53 @@ export function Logbook() {
           border: 1px solid var(--color-border);
           border-radius: var(--radius-full);
           color: var(--color-text-primary);
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           cursor: pointer;
+          min-width: 100px;
+        }
+
+        .search-clear {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+          background: var(--color-bg-tertiary);
+          border: none;
+          border-radius: 50%;
+          color: var(--color-text-muted);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .search-clear:hover {
+          background: var(--color-bg-hover);
+          color: var(--color-text-primary);
+        }
+
+        .clear-filters-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 14px;
+          background: var(--color-error-bg);
+          border: 1px solid var(--color-error);
+          border-radius: var(--radius-full);
+          color: var(--color-error);
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .clear-filters-btn:hover {
+          background: var(--color-error);
+          color: white;
+        }
+
+        .results-count {
+          font-size: 0.85rem;
+          color: var(--color-text-muted);
+          margin-bottom: 16px;
         }
 
         .problems-container {
@@ -886,6 +985,6 @@ export function Logbook() {
           border-top: 1px solid var(--color-border);
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 }

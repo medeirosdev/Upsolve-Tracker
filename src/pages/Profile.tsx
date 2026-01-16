@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { playBadgeUnlock } from '@/hooks/useSounds';
 
 export function Profile() {
   const problems = useProblemStore((state) => state.problems);
@@ -74,6 +75,7 @@ export function Profile() {
       const badge = getBadgeById(badgeId, customBadges);
       if (badge) {
         toast.success(`🏆 Nova badge: ${badge.name}!`, { duration: 5000 });
+        playBadgeUnlock();
       }
     });
   }, [stats, checkAndUnlockBadges, customBadges]);
