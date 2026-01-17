@@ -5,265 +5,329 @@
  * @copyright 2026 UpSolve
  * @license MIT
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProblemStore, useNoteStore, getStreak, getTodayCount, getWeeklyStats } from '@/stores';
 import { GoalsWidget } from '@/components/GoalsWidget';
 import {
-    TrendingUp,
-    CheckCircle,
-    Target,
-    Flame,
-    Clock,
-    Calendar,
-    BookOpen,
-    ArrowRight,
-    FileText,
-    Sparkles
+  TrendingUp,
+  CheckCircle,
+  Target,
+  Flame,
+  Clock,
+  Calendar,
+  BookOpen,
+  ArrowRight,
+  FileText,
+  Sparkles
 } from 'lucide-react';
 
 export function Dashboard() {
-    const problems = useProblemStore((state) => state.problems);
-    const notes = useNoteStore((state) => state.notes);
+  const problems = useProblemStore((state) => state.problems);
+  const notes = useNoteStore((state) => state.notes);
 
-    const streak = useMemo(() => getStreak(problems), [problems]);
-    const todayCount = useMemo(() => getTodayCount(problems), [problems]);
-    const weeklyStats = useMemo(() => getWeeklyStats(problems), [problems]);
+  const streak = useMemo(() => getStreak(problems), [problems]);
+  const todayCount = useMemo(() => getTodayCount(problems), [problems]);
+  const weeklyStats = useMemo(() => getWeeklyStats(problems), [problems]);
 
-    const totalAC = useMemo(() =>
-        problems.filter((p) => p.status === 'AC').length,
-        [problems]
-    );
+  const totalAC = useMemo(() =>
+    problems.filter((p) => p.status === 'AC').length,
+    [problems]
+  );
 
-    const accuracy = problems.length > 0
-        ? Math.round((totalAC / problems.length) * 100)
-        : 0;
+  const accuracy = problems.length > 0
+    ? Math.round((totalAC / problems.length) * 100)
+    : 0;
 
-    const recentNote = notes.length > 0 ? notes[notes.length - 1] : null;
+  const recentNote = notes.length > 0 ? notes[notes.length - 1] : null;
 
-    const topTags = useMemo(() => {
-        const tagCounts: Record<string, number> = {};
-        problems.forEach((p) => {
-            p.tags.forEach((tag) => {
-                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-            });
-        });
-        return Object.entries(tagCounts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
-    }, [problems]);
+  const topTags = useMemo(() => {
+    const tagCounts: Record<string, number> = {};
+    problems.forEach((p) => {
+      p.tags.forEach((tag) => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    });
+    return Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+  }, [problems]);
 
-    // Heatmap data (12 weeks)
-    const heatmapData = useMemo(() => {
-        const data: { date: string; count: number }[] = [];
-        const today = new Date();
+  // Heatmap period filter
+  const [heatmapPeriod, setHeatmapPeriod] = useState<'12w' | '6m' | '1y' | 'year'>('1y');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-        for (let i = 83; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            const count = problems.filter(p => p.createdAt.startsWith(dateStr)).length;
-            data.push({ date: dateStr, count });
-        }
-        return data;
-    }, [problems]);
+  // Get available years from problems
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    const currentYear = new Date().getFullYear();
+    years.add(currentYear); // Always include current year
+    problems.forEach(p => {
+      const year = new Date(p.createdAt).getFullYear();
+      years.add(year);
+    });
+    return Array.from(years).sort((a, b) => b - a); // Descending
+  }, [problems]);
 
-    return (
-        <div className="dashboard">
-            {/* Header */}
-            <header className="dashboard-header animate-fade-in">
-                <div className="header-text">
-                    <h1>Bom dia! ☀️</h1>
-                    <p>Vamos continuar evoluindo hoje?</p>
-                </div>
-                <div className="header-date">
-                    <Calendar size={16} />
-                    <span>{new Date().toLocaleDateString('pt-BR', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long'
-                    })}</span>
-                </div>
-            </header>
+  // Heatmap data based on selected period
+  const heatmapData = useMemo(() => {
+    const data: { date: string; count: number }[] = [];
+    const today = new Date();
 
-            {/* Hero Stats */}
-            <div className="hero-stats animate-fade-in delay-1">
-                <div className="hero-card hero-today">
-                    <div className="hero-icon">
-                        <Sparkles size={28} />
-                    </div>
-                    <div className="hero-content">
-                        <span className="hero-value">{todayCount}</span>
-                        <span className="hero-label">Questões hoje</span>
-                    </div>
-                </div>
-                <div className="hero-card hero-streak">
-                    <div className="hero-icon">
-                        <Flame size={28} />
-                    </div>
-                    <div className="hero-content">
-                        <span className="hero-value">{streak}</span>
-                        <span className="hero-label">Dias de streak</span>
-                    </div>
-                </div>
+    let startDate: Date;
+    let endDate: Date = today;
+
+    switch (heatmapPeriod) {
+      case '12w':
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 83);
+        break;
+      case '6m':
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 181);
+        break;
+      case '1y':
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 364);
+        break;
+      case 'year':
+        startDate = new Date(selectedYear, 0, 1); // Jan 1 of selected year
+        endDate = new Date(selectedYear, 11, 31); // Dec 31 of selected year
+        if (endDate > today) endDate = today;
+        break;
+    }
+
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const count = problems.filter(p => p.createdAt.startsWith(dateStr)).length;
+      data.push({ date: dateStr, count });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    return data;
+  }, [problems, heatmapPeriod, selectedYear]);
+
+
+
+  return (
+    <div className="dashboard">
+      {/* Header */}
+      <header className="dashboard-header animate-fade-in">
+        <div className="header-text">
+          <h1>Bom dia! ☀️</h1>
+          <p>Vamos continuar evoluindo hoje?</p>
+        </div>
+        <div className="header-date">
+          <Calendar size={16} />
+          <span>{new Date().toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long'
+          })}</span>
+        </div>
+      </header>
+
+      {/* Hero Stats */}
+      <div className="hero-stats animate-fade-in delay-1">
+        <div className="hero-card hero-today">
+          <div className="hero-icon">
+            <Sparkles size={28} />
+          </div>
+          <div className="hero-content">
+            <span className="hero-value">{todayCount}</span>
+            <span className="hero-label">Questões hoje</span>
+          </div>
+        </div>
+        <div className="hero-card hero-streak">
+          <div className="hero-icon">
+            <Flame size={28} />
+          </div>
+          <div className="hero-content">
+            <span className="hero-value">{streak}</span>
+            <span className="hero-label">Dias de streak</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="stats-grid animate-fade-in delay-2">
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>
+            <CheckCircle size={22} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">{totalAC}</span>
+            <span className="stat-label">Resolvidas</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}>
+            <Target size={22} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">{accuracy}%</span>
+            <span className="stat-label">Precisão</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--color-lavender-bg)', color: 'var(--color-lavender)' }}>
+            <TrendingUp size={22} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">{weeklyStats.total}</span>
+            <span className="stat-label">Esta semana</span>
+            <span className="stat-sub">{weeklyStats.ac} ACs</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>
+            <BookOpen size={22} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">{notes.length}</span>
+            <span className="stat-label">Notas</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Grid */}
+      <div className="main-grid">
+        {/* Heatmap */}
+        <div className="card card-heatmap animate-fade-in delay-3">
+          <div className="card-header">
+            <h2><Calendar size={18} /> Atividade</h2>
+            <div className="heatmap-filters">
+              {(['12w', '6m', '1y'] as const).map((period) => (
+                <button
+                  key={period}
+                  className={`filter-btn ${heatmapPeriod === period ? 'active' : ''}`}
+                  onClick={() => setHeatmapPeriod(period)}
+                >
+                  {period === '12w' ? '12 sem' : period === '6m' ? '6 meses' : '1 ano'}
+                </button>
+              ))}
+              <select
+                className={`filter-select ${heatmapPeriod === 'year' ? 'active' : ''}`}
+                value={heatmapPeriod === 'year' ? selectedYear : ''}
+                onChange={(e) => {
+                  setHeatmapPeriod('year');
+                  setSelectedYear(Number(e.target.value));
+                }}
+              >
+                <option value="" disabled>Ano</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
-
-            {/* Stats Grid */}
-            <div className="stats-grid animate-fade-in delay-2">
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>
-                        <CheckCircle size={22} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-value">{totalAC}</span>
-                        <span className="stat-label">Resolvidas</span>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}>
-                        <Target size={22} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-value">{accuracy}%</span>
-                        <span className="stat-label">Precisão</span>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: 'var(--color-lavender-bg)', color: 'var(--color-lavender)' }}>
-                        <TrendingUp size={22} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-value">{weeklyStats.total}</span>
-                        <span className="stat-label">Esta semana</span>
-                        <span className="stat-sub">{weeklyStats.ac} ACs</span>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>
-                        <BookOpen size={22} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-value">{notes.length}</span>
-                        <span className="stat-label">Notas</span>
-                    </div>
-                </div>
+          </div>
+          <div className="heatmap-wrapper">
+            <div className="heatmap-grid">
+              {heatmapData.map((day, i) => (
+                <div
+                  key={i}
+                  className={`heatmap-cell level-${Math.min(day.count, 4)}`}
+                  title={`${day.date}: ${day.count} questões`}
+                />
+              ))}
             </div>
-
-            {/* Main Grid */}
-            <div className="main-grid">
-                {/* Heatmap */}
-                <div className="card card-heatmap animate-fade-in delay-3">
-                    <div className="card-header">
-                        <h2><Calendar size={18} /> Atividade</h2>
-                        <span className="card-meta">últimas 12 semanas</span>
-                    </div>
-                    <div className="heatmap-wrapper">
-                        <div className="heatmap-grid">
-                            {heatmapData.map((day, i) => (
-                                <div
-                                    key={i}
-                                    className={`heatmap-cell level-${Math.min(day.count, 4)}`}
-                                    title={`${day.date}: ${day.count} questões`}
-                                />
-                            ))}
-                        </div>
-                        <div className="heatmap-legend">
-                            <span>Menos</span>
-                            {[0, 1, 2, 3, 4].map((level) => (
-                                <div key={level} className={`heatmap-cell level-${level}`} />
-                            ))}
-                            <span>Mais</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Recent Activity */}
-                <div className="card animate-fade-in delay-3">
-                    <div className="card-header">
-                        <h2><Clock size={18} /> Recentes</h2>
-                        <Link to="/logbook" className="card-link">
-                            Ver tudo <ArrowRight size={14} />
-                        </Link>
-                    </div>
-                    {problems.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="empty-emoji">📝</div>
-                            <p>Nenhuma questão ainda</p>
-                            <Link to="/logbook" className="btn-primary">Adicionar primeira</Link>
-                        </div>
-                    ) : (
-                        <ul className="activity-list">
-                            {problems.slice(-5).reverse().map((p) => (
-                                <li key={p.id} className="activity-item">
-                                    <span className={`status-badge status-${p.status.toLowerCase()}`}>
-                                        {p.status}
-                                    </span>
-                                    <div className="activity-info">
-                                        <span className="activity-title">{p.title}</span>
-                                        <span className="activity-platform">{p.platform}</span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-
-                {/* Recent Note */}
-                <div className="card animate-fade-in delay-4">
-                    <div className="card-header">
-                        <h2><FileText size={18} /> Última Nota</h2>
-                        <Link to="/grimoire" className="card-link">
-                            Grimório <ArrowRight size={14} />
-                        </Link>
-                    </div>
-                    {recentNote ? (
-                        <div className="note-preview">
-                            <h3>{recentNote.title}</h3>
-                            <p>{recentNote.content.slice(0, 150)}...</p>
-                            {recentNote.category && (
-                                <span className="note-tag">{recentNote.category}</span>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="empty-state small">
-                            <p>Nenhuma nota ainda</p>
-                            <Link to="/grimoire" className="btn-secondary">Criar nota</Link>
-                        </div>
-                    )}
-                </div>
-
-                {/* Goals Widget */}
-                <div className="animate-fade-in delay-4">
-                    <GoalsWidget />
-                </div>
-
-                {/* Top Tags */}
-                <div className="card animate-fade-in delay-4">
-                    <div className="card-header">
-                        <h2>Tópicos</h2>
-                    </div>
-                    {topTags.length === 0 ? (
-                        <p className="text-muted">Adicione tags às questões</p>
-                    ) : (
-                        <div className="tags-chart">
-                            {topTags.map(([tag, count]) => (
-                                <div key={tag} className="tag-row">
-                                    <span className="tag-name">{tag}</span>
-                                    <div className="tag-bar">
-                                        <div
-                                            className="tag-fill"
-                                            style={{ width: `${(count / topTags[0][1]) * 100}%` }}
-                                        />
-                                    </div>
-                                    <span className="tag-count">{count}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+            <div className="heatmap-legend">
+              <span>Menos</span>
+              {[0, 1, 2, 3, 4].map((level) => (
+                <div key={level} className={`heatmap-cell level-${level}`} />
+              ))}
+              <span>Mais</span>
             </div>
+          </div>
+        </div>
 
-            <style>{`
+        {/* Recent Activity */}
+        <div className="card animate-fade-in delay-3">
+          <div className="card-header">
+            <h2><Clock size={18} /> Recentes</h2>
+            <Link to="/logbook" className="card-link">
+              Ver tudo <ArrowRight size={14} />
+            </Link>
+          </div>
+          {problems.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-emoji">📝</div>
+              <p>Nenhuma questão ainda</p>
+              <Link to="/logbook" className="btn-primary">Adicionar primeira</Link>
+            </div>
+          ) : (
+            <ul className="activity-list">
+              {problems.slice(-5).reverse().map((p) => (
+                <li key={p.id} className="activity-item">
+                  <span className={`status-badge status-${p.status.toLowerCase()}`}>
+                    {p.status}
+                  </span>
+                  <div className="activity-info">
+                    <span className="activity-title">{p.title}</span>
+                    <span className="activity-platform">{p.platform}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Recent Note */}
+        <div className="card animate-fade-in delay-4">
+          <div className="card-header">
+            <h2><FileText size={18} /> Última Nota</h2>
+            <Link to="/grimoire" className="card-link">
+              Grimório <ArrowRight size={14} />
+            </Link>
+          </div>
+          {recentNote ? (
+            <div className="note-preview">
+              <h3>{recentNote.title}</h3>
+              <p>{recentNote.content.slice(0, 150)}...</p>
+              {recentNote.category && (
+                <span className="note-tag">{recentNote.category}</span>
+              )}
+            </div>
+          ) : (
+            <div className="empty-state small">
+              <p>Nenhuma nota ainda</p>
+              <Link to="/grimoire" className="btn-secondary">Criar nota</Link>
+            </div>
+          )}
+        </div>
+
+        {/* Goals Widget */}
+        <div className="animate-fade-in delay-4">
+          <GoalsWidget />
+        </div>
+
+        {/* Top Tags */}
+        <div className="card animate-fade-in delay-4">
+          <div className="card-header">
+            <h2>Tópicos</h2>
+          </div>
+          {topTags.length === 0 ? (
+            <p className="text-muted">Adicione tags às questões</p>
+          ) : (
+            <div className="tags-chart">
+              {topTags.map(([tag, count]) => (
+                <div key={tag} className="tag-row">
+                  <span className="tag-name">{tag}</span>
+                  <div className="tag-bar">
+                    <div
+                      className="tag-fill"
+                      style={{ width: `${(count / topTags[0][1]) * 100}%` }}
+                    />
+                  </div>
+                  <span className="tag-count">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
         .dashboard {
           width: 100%;
           max-width: 1400px;
@@ -506,10 +570,12 @@ export function Dashboard() {
 
         .heatmap-grid {
           display: grid;
-          grid-template-columns: repeat(12, 1fr);
           grid-template-rows: repeat(7, 1fr);
+          grid-auto-flow: column;
+          grid-auto-columns: minmax(14px, 1fr);
           gap: 4px;
           margin-bottom: 16px;
+          direction: ltr;
         }
 
         .heatmap-cell {
@@ -524,6 +590,63 @@ export function Dashboard() {
         .heatmap-cell.level-2 { background: rgba(93, 184, 130, 0.5); }
         .heatmap-cell.level-3 { background: rgba(93, 184, 130, 0.7); }
         .heatmap-cell.level-4 { background: var(--color-success); }
+
+        .heatmap-filters {
+          display: flex;
+          gap: 6px;
+        }
+
+        .filter-btn {
+          padding: 6px 12px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          background: var(--color-bg-tertiary);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-full);
+          color: var(--color-text-muted);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .filter-btn:hover {
+          background: var(--color-bg-hover);
+          color: var(--color-text-primary);
+        }
+
+        .filter-btn.active {
+          background: var(--color-accent-primary);
+          border-color: var(--color-accent-primary);
+          color: white;
+        }
+
+        .filter-select {
+          padding: 6px 12px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          background: var(--color-bg-tertiary);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-full);
+          color: var(--color-text-muted);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          appearance: none;
+          padding-right: 24px;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 8px center;
+        }
+
+        .filter-select:hover {
+          background-color: var(--color-bg-hover);
+          color: var(--color-text-primary);
+        }
+
+        .filter-select.active {
+          background-color: var(--color-accent-primary);
+          border-color: var(--color-accent-primary);
+          color: white;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        }
 
         .heatmap-legend {
           display: flex;
@@ -708,6 +831,6 @@ export function Dashboard() {
           color: var(--color-text-muted);
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 }
