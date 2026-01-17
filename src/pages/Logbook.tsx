@@ -809,8 +809,8 @@ export function Logbook() {
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.5);
-          backdrop-filter: blur(4px);
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(6px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -822,28 +822,38 @@ export function Logbook() {
           background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: var(--radius-xl);
-          padding: 28px;
+          padding: 32px;
           width: 100%;
-          max-width: 560px;
+          max-width: 700px;
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 768px) {
+          .modal {
+            max-width: 100%;
+            padding: 24px;
+            margin: 16px;
+          }
         }
 
         .modal-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
+          margin-bottom: 28px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .modal-header h2 {
-          font-size: 1.25rem;
+          font-size: 1.4rem;
           font-weight: 600;
         }
 
         .modal-close {
-          padding: 8px;
+          padding: 10px;
           background: var(--color-bg-tertiary);
           border: none;
           color: var(--color-text-muted);
@@ -858,54 +868,53 @@ export function Logbook() {
         }
 
         .form-row {
-          display: flex;
-          gap: 14px;
-          margin-bottom: 16px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 20px;
         }
 
-        @media (max-width: 500px) {
-          .form-row {
-            flex-direction: column;
+        .form-row-3 {
+          grid-template-columns: 2fr 1fr 1fr;
+        }
+
+        @media (max-width: 600px) {
+          .form-row,
+          .form-row-3 {
+            grid-template-columns: 1fr;
           }
         }
 
         .form-group {
-          flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
         }
 
         .form-group-small {
-          flex: 0 0 150px;
+          flex: 0 0 auto;
         }
 
         .form-group-xs {
-          flex: 0 0 100px;
-        }
-
-        @media (max-width: 500px) {
-          .form-group-small,
-          .form-group-xs {
-            flex: 1;
-          }
+          flex: 0 0 auto;
         }
 
         .form-group label {
           font-size: 0.85rem;
-          font-weight: 500;
+          font-weight: 600;
           color: var(--color-text-secondary);
+          letter-spacing: 0.02em;
         }
 
         .form-group input,
         .form-group select,
         .form-group textarea {
-          padding: 12px 14px;
+          padding: 14px 16px;
           background: var(--color-bg-tertiary);
           border: 1px solid var(--color-border);
           border-radius: var(--radius-md);
           color: var(--color-text-primary);
-          font-size: 0.9rem;
+          font-size: 0.95rem;
           outline: none;
           transition: all var(--transition-fast);
           font-family: inherit;
@@ -917,6 +926,7 @@ export function Logbook() {
           border-color: var(--color-accent-primary);
           box-shadow: 0 0 0 3px rgba(124, 110, 246, 0.15);
         }
+
 
         .tags-input-container {
           display: flex;
